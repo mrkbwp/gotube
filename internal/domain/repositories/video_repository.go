@@ -64,4 +64,7 @@ type VideoRepository interface {
 
 	// UpdateThumbnailAndDuration обновляем картинку и длительность
 	UpdateThumbnailAndDuration(ctx context.Context, videoID uuid.UUID, thumbnailURL string, duration int) error
+
+	// RecalculateReactionCounts пересчет показателей
+	RecalculateReactionCounts(ctx context.Context, videoID uuid.UUID) error
 }

@@ -175,12 +175,15 @@ func main() {
 	apiV1auth.DELETE("/videos/:code", videoHandler.DeleteVideo)
 
 	// Реакции на видео
-	apiV1auth.POST("/videos/:code/like", videoHandler.LikeVideo)
-	apiV1auth.POST("/videos/:code/dislike", videoHandler.DislikeVideo)
+	apiV1auth.POST("/videos/:id/like", videoHandler.LikeVideo)
+	apiV1auth.POST("/videos/:id/dislike", videoHandler.DislikeVideo)
 
 	// Комментарии (операции записи)
 	apiV1auth.POST("/videos/:code/comments", commentHandler.AddComment)
 	apiV1auth.DELETE("/comments/:id", commentHandler.DeleteComment)
+
+	// Получение информации для юзера о видео
+	apiV1auth.GET("/videos/user/:code", videoHandler.GetVideoUserByCode)
 
 	// Запускаем сервер с graceful shutdown
 	go func() {

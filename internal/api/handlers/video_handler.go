@@ -113,6 +113,31 @@ func (h *VideoHandler) GetVideoByCode(c echo.Context) error {
 	return responses.JSON(c, http.StatusOK, video)
 }
 
+// GetVideoUserByCode возвращает видео с информацией о реакциях текущего пользователя
+// @Summary Получение видео с реакциями пользователя
+// @Description Возвращает видео по коду с информацией о лайках/дислайках текущего пользователя
+// @Tags auth-videos
+// @Produce json
+// @Param code path string true "Код видео"
+// @Security ApiKeyAuth
+// @Success 200 {object} VideoUserResponse
+// @Failure 401 {object} responses.ErrorResponse
+// @Failure 404 {object} responses.ErrorResponse
+// @Failure 500 {object} responses.ErrorResponse
+// @Router /api/v1/auth/videos/{code} [get]
+func (h *VideoHandler) GetVideoUserByCode(c echo.Context) error {
+	code := c.Param("code")
+	userID := c.Get("userID").(uuid.UUID)
+	ctx := c.Request().Context()
+
+	video, err := h.videoService.GetVideoUserInfoByCode(ctx, code, userID)
+	if err != nil {
+		return responses.Error(c, http.StatusNotFound, "Video not found")
+	}
+
+	return responses.JSON(c, http.StatusOK, video)
+}
+
 // GetNewVideos возвращает список новых видео с пагинацией
 // @Summary Список новых видео
 // @Description Возвращает список новых видео с пагинацией
@@ -184,7 +209,7 @@ func (h *VideoHandler) LikeVideo(c echo.Context) error {
 
 	err := h.videoService.LikeVideo(ctx, uuid.MustParse(videoID), userID)
 	if err != nil {
-		return responses.Error(c, http.StatusInternalServerError, "Failed to like video")
+		return responses.Error(c, http.StatusInternalServerError, "Failed to like video"+err.Error())
 	}
 
 	return responses.Success(c, "Video liked successfully")

@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"github.com/mrkbwp/gotube/pkg/constants"
 	"github.com/mrkbwp/gotube/pkg/sqlutil"
-	"reflect"
-	"strings"
 	"time"
 
 	"github.com/Masterminds/squirrel"
@@ -382,26 +380,19 @@ func (r *VideoRepository) IncrementViews(ctx context.Context, id uuid.UUID) erro
 func (r *VideoRepository) GetUserReaction(ctx context.Context, videoID, userID uuid.UUID) (*entity.VideoReaction, error) {
 	sb := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
-	// Получаем список полей из структуры VideoReaction
-	fields, err := sqlutil.GetFields(&entity.VideoReaction{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get fields: %w", err)
-	}
-
-	// Формируем SELECT-запрос через Squirrel
 	query, args, err := sb.
-		Select(fields...).
+		Select("id", "video_id", "user_id", "type", "created_at", "deleted_at").
 		From(constants.VideoReactionsTable).
 		Where("video_id = ?", videoID).
 		Where("user_id = ?", userID).
-		Where("deleted_at IS NULL").
+		Where("deleted_at IS NULL"). // Учитываем только активные реакции
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
 	}
 
-	reaction := &entity.VideoReaction{}
-	err = r.db.GetContext(ctx, reaction, query, args...)
+	var reaction entity.VideoReaction
+	err = r.db.GetContext(ctx, &reaction, query, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, constants.ErrNotFound
@@ -409,15 +400,11 @@ func (r *VideoRepository) GetUserReaction(ctx context.Context, videoID, userID u
 		return nil, fmt.Errorf("failed to get reaction: %w", err)
 	}
 
-	return reaction, nil
+	return &reaction, nil
 }
 
 func (r *VideoRepository) CreateReaction(ctx context.Context, reaction *entity.VideoReaction) error {
 	reaction.ID = uuid.New()
-
-	if reaction.CreatedAt.IsZero() {
-		reaction.CreatedAt = time.Now()
-	}
 
 	sb := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
@@ -427,11 +414,16 @@ func (r *VideoRepository) CreateReaction(ctx context.Context, reaction *entity.V
 		return fmt.Errorf("failed to get fields: %w", err)
 	}
 
+	values, err := sqlutil.GetValues(reaction)
+	if err != nil {
+		return fmt.Errorf("failed to get values: %w", err)
+	}
+
 	// Формируем INSERT-запрос
 	insertQuery, insertArgs, err := sb.
 		Insert(constants.VideoReactionsTable).
 		Columns(fields...).
-		Values(reaction).
+		Values(values...).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("failed to build insert query: %w", err)
@@ -457,30 +449,14 @@ func (r *VideoRepository) CreateReaction(ctx context.Context, reaction *entity.V
 }
 
 func (r *VideoRepository) UpdateReaction(ctx context.Context, reaction *entity.VideoReaction) error {
-	if reaction.CreatedAt.IsZero() {
-		reaction.CreatedAt = time.Now()
-	}
-
 	sb := squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar)
 
-	// Получаем список полей из структуры
-	fields, err := sqlutil.GetFields(reaction)
-	if err != nil {
-		return fmt.Errorf("failed to get fields: %w", err)
+	values := map[string]interface{}{
+		"type":       reaction.Type,
+		"created_at": time.Now().UTC(),
+		"deleted_at": nil, // Восстанавливаем реакцию
 	}
 
-	// Исключаем поле id из обновления
-
-	// Формируем SET-часть через рефлексию
-	values := make(map[string]interface{})
-	for _, field := range fields {
-		val := reflect.Indirect(reflect.ValueOf(reaction)).FieldByName(strings.Title(field)).Interface()
-		values[field] = val
-	}
-
-	delete(values, "id")
-
-	// Билдим запрос
 	query, args, err := sb.
 		Update(constants.VideoReactionsTable).
 		SetMap(values).
@@ -674,4 +650,18 @@ func (r *VideoRepository) UpdateThumbnailAndDuration(ctx context.Context, videoI
 	}
 
 	return nil
+}
+
+func (r *VideoRepository) RecalculateReactionCounts(ctx context.Context, videoID uuid.UUID) error {
+	query := `
+        UPDATE videos
+        SET 
+            likes = (SELECT COUNT(*) FROM video_reactions 
+                     WHERE video_id = $1 AND type = 'like' AND deleted_at IS NULL),
+            dislikes = (SELECT COUNT(*) FROM video_reactions 
+                      WHERE video_id = $1 AND type = 'dislike' AND deleted_at IS NULL)
+        WHERE id = $1
+    `
+	_, err := r.db.ExecContext(ctx, query, videoID)
+	return err
 }

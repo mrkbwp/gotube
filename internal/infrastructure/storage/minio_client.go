@@ -30,7 +30,7 @@ func NewMinioClient(internalEndpoint, publicEndpoint, accessKey, secretKey strin
 	// Клиент для генерации публичных URL
 	publicClient, err := minio.New(publicEndpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: false,
+		Secure: storageUseSSL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create public MinIO client: %w", err)

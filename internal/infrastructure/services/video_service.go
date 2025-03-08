@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/mrkbwp/gotube/internal/dto"
 	"github.com/mrkbwp/gotube/pkg/constants"
 	"github.com/mrkbwp/gotube/pkg/kafka"
 	"io"
@@ -155,22 +156,29 @@ func (s *VideoService) GetVideoByID(ctx context.Context, id uuid.UUID) (*entity.
 }
 
 // GetVideoByCode возвращает информацию о видео по коду
+// VideoResponse - DTO для ответа с дополнительными полями
 func (s *VideoService) GetVideoByCode(ctx context.Context, code string) (*entity.Video, error) {
-	// Если нет в кеше, получаем из БД
 	video, err := s.videoRepo.GetByCode(ctx, code)
 	if err != nil {
-		if errors.Is(err, constants.ErrNotFound) {
-			return nil, constants.ErrVideoNotFound
-		}
+		return nil, fmt.Errorf("failed to get video: %w", err)
+	}
+	return video, nil
+}
+
+func (s *VideoService) GetVideoUserInfoByCode(ctx context.Context, code string, userID uuid.UUID) (*dto.VideoUserResponse, error) {
+	video, err := s.videoRepo.GetByCode(ctx, code)
+	if err != nil {
 		return nil, fmt.Errorf("failed to get video: %w", err)
 	}
 
-	// Проверяем статус и доступность
-	//if err := s.validateVideoAccess(video); err != nil {
-	//	return nil, err
-	//}
+	reaction, _ := s.videoRepo.GetUserReaction(ctx, video.ID, userID)
+	resp := &dto.VideoUserResponse{
+		Video:    *video,
+		Liked:    reaction != nil && reaction.Type == "like",
+		Disliked: reaction != nil && reaction.Type == "dislike",
+	}
 
-	return video, nil
+	return resp, nil
 }
 
 func (s *VideoService) GetVideoFiles(ctx context.Context, video *entity.Video) ([]*entity.VideoFile, error) {
@@ -314,25 +322,27 @@ func (s *VideoService) LikeVideo(ctx context.Context, videoID, userID uuid.UUID)
 		return fmt.Errorf("failed to get reaction: %w", err)
 	}
 
-	if reaction != nil && reaction.Type == "like" {
-		return s.videoRepo.DeleteReaction(ctx, videoID, userID)
-	}
-
 	newReaction := &entity.VideoReaction{
-		VideoID:   video.ID,
-		UserID:    userID,
-		Type:      "like",
-		CreatedAt: time.Now(),
+		VideoID: video.ID,
+		UserID:  userID,
+		Type:    "like",
 	}
 
-	if reaction != nil {
-		err = s.videoRepo.UpdateReaction(ctx, newReaction)
-	} else {
+	switch {
+	case reaction == nil:
 		err = s.videoRepo.CreateReaction(ctx, newReaction)
+	case reaction.Type == "like":
+		return nil // Лайк уже стоит, ничего не делаем
+	default:
+		err = s.videoRepo.UpdateReaction(ctx, newReaction)
 	}
 
 	if err != nil {
 		return fmt.Errorf("failed to save reaction: %w", err)
+	}
+
+	if err := s.videoRepo.RecalculateReactionCounts(ctx, videoID); err != nil {
+		return err
 	}
 
 	return nil
@@ -372,6 +382,10 @@ func (s *VideoService) DislikeVideo(ctx context.Context, videoID, userID uuid.UU
 
 	if err != nil {
 		return fmt.Errorf("failed to save reaction: %w", err)
+	}
+
+	if err := s.videoRepo.RecalculateReactionCounts(ctx, videoID); err != nil {
+		return err
 	}
 
 	return nil

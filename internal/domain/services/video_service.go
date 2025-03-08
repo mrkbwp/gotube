@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"github.com/google/uuid"
+	"github.com/mrkbwp/gotube/internal/dto"
 	"io"
 
 	"github.com/mrkbwp/gotube/internal/domain/entity"
@@ -45,4 +46,7 @@ type VideoService interface {
 
 	// GetVideoFiles получение видео файлов
 	GetVideoFiles(ctx context.Context, video *entity.Video) ([]*entity.VideoFile, error)
+
+	// GetVideoUserInfoByCode получение информации для залогиненного юзера
+	GetVideoUserInfoByCode(ctx context.Context, code string, userID uuid.UUID) (*dto.VideoUserResponse, error)
 }
