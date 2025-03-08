@@ -1,0 +1,107 @@
+# Бинарные файлы и исполняемые файлы
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+bin/
+
+# Временные файлы
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Файлы IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Зависимости
+vendor/
+node_modules/
+
+# Файлы окружения
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Файлы логов
+*.log
+logs/
+log/
+
+# Файлы сборки
+dist/
+build/
+
+# Файлы кэша
+.cache/
+*.cache
+
+# Файлы конфигурации
+config.local.yaml
+config.prod.yaml
+!config.example.yaml
+
+# Файлы сертификатов
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.priv
+
+# Файлы базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Файлы для разработки
+debug
+debug.test
+__debug_bin
+
+# Файлы macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Файлы Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Временные файлы Redis
+dump.rdb
+*.rdb
+
+# Файлы тестового покрытия
+coverage.out
+coverage.html
+
+# Файлы MinIO
+.minio.sys/
+
+# Файлы загрузок
+uploads/
+downloads/
+
+# Файлы документации
+docs/_site/
+docs/.jekyll-cache/
+docs/.jekyll-metadata
+
+# Файлы Swagger
+swagger.json
+swagger.yaml
+
+# Другие специфичные для проекта файлы
+video-conversion/
+processed-videos/
+thumbnails/
