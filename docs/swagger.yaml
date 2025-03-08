@@ -1,0 +1,748 @@
+basePath: /api/v1
+definitions:
+  entity.Category:
+    properties:
+      description:
+        type: string
+      icon:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  entity.Comment:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      parent_id:
+        description: Для построения дерева комментариев
+        type: string
+      text:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      video_id:
+        type: string
+    type: object
+  entity.Metadata:
+    additionalProperties: true
+    type: object
+  entity.Video:
+    properties:
+      bucket_id:
+        type: string
+      category_id:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      description:
+        type: string
+      dislikes:
+        type: integer
+      duration:
+        type: integer
+      error_message:
+        type: string
+      filename:
+        type: string
+      id:
+        type: string
+      is_blocked:
+        type: boolean
+      is_private:
+        type: boolean
+      likes:
+        type: integer
+      metadata:
+        $ref: '#/definitions/entity.Metadata'
+      original_filename:
+        type: string
+      path_segment1:
+        type: string
+      path_segment2:
+        type: string
+      processed_at:
+        type: string
+      shard_id:
+        type: string
+      status:
+        type: string
+      thumbnail_url:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      video_code:
+        type: string
+      video_files:
+        items:
+          $ref: '#/definitions/entity.VideoFile'
+        type: array
+      views:
+        type: integer
+    type: object
+  entity.VideoFile:
+    properties:
+      bitrate:
+        type: integer
+      created_at:
+        type: string
+      file_size:
+        type: integer
+      format:
+        type: string
+      height:
+        type: integer
+      id:
+        type: string
+      quality:
+        type: string
+      quality_id:
+        type: string
+      updated_at:
+        type: string
+      url:
+        type: string
+      video_id:
+        type: string
+      width:
+        type: integer
+    type: object
+  requests.CommentRequest:
+    properties:
+      parent_id:
+        type: string
+      text:
+        type: string
+    type: object
+  requests.UpdateVideoRequest:
+    properties:
+      category_id:
+        type: string
+      description:
+        type: string
+      title:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - category_id
+    - title
+    type: object
+  responses.ErrorResponse:
+    properties:
+      code:
+        type: string
+      error:
+        type: string
+    type: object
+  responses.PaginatedResponse:
+    properties:
+      data: {}
+      limit:
+        type: integer
+      page:
+        type: integer
+      total:
+        type: integer
+    type: object
+  responses.SuccessResponse:
+    properties:
+      success:
+        type: boolean
+    type: object
+host: localhost:8111
+info:
+  contact: {}
+  description: Api видеохостинга GoTube
+  title: GoTube API
+  version: "1.0"
+paths:
+  /api/admin/categories:
+    post:
+      consumes:
+      - application/json
+      description: Создает новую категорию (только для администраторов)
+      parameters:
+      - description: Данные категории
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Создание категории
+      tags:
+      - categories
+  /api/admin/categories/{id}:
+    delete:
+      description: Удаляет категорию по ID (только для администраторов)
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление категории
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую категорию (только для администраторов)
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные категории
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/entity.Category'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление категории
+      tags:
+      - categories
+  /api/categories:
+    get:
+      description: Возвращает список всех доступных категорий
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/entity.Category'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Список категорий
+      tags:
+      - categories
+  /api/categories/{id}:
+    get:
+      description: Возвращает категорию по её ID
+      parameters:
+      - description: ID категории
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Category'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Получение категории
+      tags:
+      - categories
+  /api/comments/{id}:
+    delete:
+      description: Удаляет комментарий по ID
+      parameters:
+      - description: ID комментария
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление комментария
+      tags:
+      - comments
+    put:
+      consumes:
+      - application/json
+      description: Обновляет текст существующего комментария
+      parameters:
+      - description: ID комментария
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные комментария
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление комментария
+      tags:
+      - comments
+  /api/users/{user_id}/videos:
+    get:
+      description: Возвращает список видео конкретного пользователя с пагинацией
+      parameters:
+      - description: ID пользователя
+        in: path
+        name: user_id
+        required: true
+        type: string
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Количество на странице
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.PaginatedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Список видео пользователя
+      tags:
+      - videos
+  /api/videos:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает новое видео в систему, название и описание берутся из
+        имени файла
+      parameters:
+      - description: Видеофайл
+        in: formData
+        name: video
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Video'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Загрузка видео
+      tags:
+      - videos
+  /api/videos/{code}:
+    get:
+      description: Возвращает информацию о видео по его коду
+      parameters:
+      - description: Код видео
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Video'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Получение видео по коду
+      tags:
+      - videos
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о существующем видео
+      parameters:
+      - description: ID видео
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления видео
+        in: body
+        name: video
+        required: true
+        schema:
+          $ref: '#/definitions/requests.UpdateVideoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Video'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Обновление видео
+      tags:
+      - videos
+  /api/videos/{code}/comments:
+    get:
+      description: Возвращает список комментариев к видео с пагинацией
+      parameters:
+      - description: ID видео
+        in: path
+        name: code
+        required: true
+        type: string
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Количество на странице
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.PaginatedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Получение комментариев к видео
+      tags:
+      - comments
+  /api/videos/{id}:
+    delete:
+      description: Удаляет видео по ID
+      parameters:
+      - description: ID видео
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Удаление видео
+      tags:
+      - videos
+  /api/videos/{id}/comments:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новый комментарий к видео
+      parameters:
+      - description: ID видео
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные комментария
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/requests.CommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entity.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Добавление комментария
+      tags:
+      - comments
+  /api/videos/{id}/dislike:
+    post:
+      description: Добавляет дизлайк к видео от текущего пользователя
+      parameters:
+      - description: ID видео
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Дизлайк видео
+      tags:
+      - videos
+  /api/videos/{id}/like:
+    post:
+      description: Добавляет лайк к видео от текущего пользователя
+      parameters:
+      - description: ID видео
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.SuccessResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Лайк видео
+      tags:
+      - videos
+  /api/videos/new:
+    get:
+      description: Возвращает список новых видео с пагинацией
+      parameters:
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Количество на странице
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.PaginatedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Список новых видео
+      tags:
+      - videos
+  /api/videos/popular:
+    get:
+      description: Возвращает список популярных видео с пагинацией
+      parameters:
+      - description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - description: Количество на странице
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.PaginatedResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponse'
+      summary: Список популярных видео
+      tags:
+      - videos
+swagger: "2.0"
