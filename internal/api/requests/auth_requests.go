@@ -19,12 +19,12 @@ type LoginRequest struct {
 
 // RefreshTokenRequest запрос на обновление токенов
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh__token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 	UserAgent    string `json:"-"` // Заполняется из HTTP заголовка
 	ClientIP     string `json:"-"` // Заполняется из IP адреса
 }
 
 // LogoutRequest запрос на выход
 type LogoutRequest struct {
-	RefreshToken string `json:"refresh__token" validate:"required"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }

@@ -153,10 +153,8 @@ func (s *AuthService) RefreshTokens(ctx context.Context, refreshToken string, us
 		return nil, constants.ErrTokenExpired
 	}
 
-	tokenUserID := &token.UserID
-
 	// Проверяем соответствие UserID в токене и в БД
-	if userID != tokenUserID {
+	if userID.String() != token.UserID.String() {
 		return nil, constants.ErrInvalidToken
 	}
 
